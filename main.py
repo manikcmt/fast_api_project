@@ -10,3 +10,16 @@ app = FastAPI(title="FastAPI MySQL Object-Oriented Clean Architecture")
 
 # রাউটার রেজিস্টার করা
 app.include_router(user_controller.router)
+
+@app.get("/")
+def root():
+  return {"message": "API is running successfully!"}
+
+
+# লোকাল বা সার্ভারে রান করার জন্য এই অংশটুকু যুক্ত করুন
+if __name__ == "__main__":
+  import os
+  import uvicorn
+
+  port = int(os.environ.get("PORT", 8000))
+  uvicorn.run("main:app", host="0.0.0.0", port=port)
