@@ -1,0 +1,10 @@
+__pycache__
+/node_modules
+.idea/
+.serverless/
+/dist/
+/build/
+*.egg-info/
+*.pyc
+.mypy_cache
+/venv/*
