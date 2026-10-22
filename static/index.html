@@ -1,0 +1,93 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>User Management</title>
+</head>
+<body>
+    <h1>User Management System</h1>
+
+    <form id="userForm">
+        <input id="name" placeholder="Name" required>
+        <input id="email" type="email" placeholder="Email" required>
+        <input id="age" type="number" placeholder="Age" required>
+        <button type="submit">Add User</button>
+    </form>
+
+    <p id="message"></p>
+    <button id="loadUsers">Load Users</button>
+    <ul id="userList"></ul>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+
+        document.getElementById("userForm")
+            .addEventListener("submit", async (event) => {
+                event.preventDefault();
+
+                const user = {
+                    name: document.getElementById("name").value,
+                    email: document.getElementById("email").value,
+                    age: Number(document.getElementById("age").value)
+                };
+
+                try {
+                    const response = await fetch(`${API_URL}/users/`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(user)
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            result.detail || "User creation failed"
+                        );
+                    }
+
+                    document.getElementById("message").textContent =
+                        "User added successfully!";
+
+                    event.target.reset();
+                    loadUsers();
+                } catch (error) {
+                    document.getElementById("message").textContent =
+                        error.message;
+                }
+            });
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_URL}/users/`);
+
+                if (!response.ok) {
+                    throw new Error("Could not load users");
+                }
+
+                const users = await response.json();
+                const list = document.getElementById("userList");
+
+                list.replaceChildren();
+
+                users.forEach(user => {
+                    const item = document.createElement("li");
+                    item.textContent =
+                        `${user.id} - ${user.name} - ${user.email} - ${user.age}`;
+                    list.appendChild(item);
+                });
+            } catch (error) {
+                document.getElementById("message").textContent =
+                    error.message;
+            }
+        }
+
+        document.getElementById("loadUsers")
+            .addEventListener("click", loadUsers);
+    </script>
+</body>
+</html>

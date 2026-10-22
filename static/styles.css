@@ -1,0 +1,15 @@
+/* Basic CSS for beginners */
+body { font-family: Arial, sans-serif; background: #f3f3f3; margin: 0; }
+.container { background: white; max-width: 750px; margin: 30px auto; padding: 20px; border: 1px solid #ccc; }
+h1 { margin-top: 0; }
+h2 { margin-top: 25px; }
+label { display: block; margin: 12px 0 5px; }
+input { padding: 8px; width: 100%; max-width: 320px; box-sizing: border-box; display: block; }
+button { padding: 7px 12px; margin: 12px 6px 6px 0; cursor: pointer; }
+#message { min-height: 20px; color: green; }
+#message.error { color: red; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { border: 1px solid #aaa; text-align: left; padding: 8px; overflow-wrap: anywhere; }
+th { background: #eee; }
+td button { margin: 2px; }
+@media (max-width: 800px) { .container { margin: 10px; } }
