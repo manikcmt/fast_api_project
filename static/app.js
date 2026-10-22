@@ -2,7 +2,7 @@
 // User Management CRUD with FastAPI
 // GET, POST, PUT, DELETE
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://fast-api-project-2-tfw6.onrender.com";
 const USERS_URL = `${API_URL}/users/`;
 
 const form = document.getElementById("user-form");
