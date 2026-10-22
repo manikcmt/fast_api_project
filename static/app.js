@@ -1,6 +1,10 @@
-// Beginner-friendly CRUD: Add (POST), Edit (PUT), Delete (DELETE).
-// No PATCH endpoint or separate age update button.
-const api = "/users/";
+```javascript
+// User Management CRUD with FastAPI
+// GET, POST, PUT, DELETE
+
+const API_URL = "http://127.0.0.1:8000";
+const USERS_URL = `${API_URL}/users/`;
+
 const form = document.getElementById("user-form");
 const nameInput = document.getElementById("name");
 const emailInput = document.getElementById("email");
@@ -8,115 +12,234 @@ const ageInput = document.getElementById("age");
 const userList = document.getElementById("user-list");
 const message = document.getElementById("message");
 const cancelButton = document.getElementById("cancel-button");
+
 let editingId = null;
 
+// Display messages
 function showMessage(text, error = false) {
     message.textContent = text;
-    message.className = error ? "error" : "";
+    message.className = error ? "error" : "success";
 }
 
+// API request helper
 async function request(url, options = {}) {
-    const response = await fetch(url, options);
-    const data = await response.json();
-    if (!response.ok) {
-        const detail = data.detail;
-        throw new Error(typeof detail === "string" ? detail : `Request failed (${response.status})`);
+    let response;
+
+    try {
+        response = await fetch(url, options);
+    } catch (error) {
+        throw new Error(
+            "Backend-এর সঙ্গে সংযোগ হচ্ছে না। FastAPI চালু আছে কি না পরীক্ষা করুন।"
+        );
     }
+
+    // DELETE may return HTTP 204 with no response body.
+    if (response.status === 204) {
+        if (!response.ok) {
+            throw new Error(`Request failed (${response.status})`);
+        }
+        return null;
+    }
+
+    const text = await response.text();
+    let data = null;
+
+    if (text) {
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = text;
+        }
+    }
+
+    if (!response.ok) {
+        const detail =
+            data && typeof data === "object" ? data.detail : null;
+
+        let errorMessage;
+
+        if (Array.isArray(detail)) {
+            errorMessage = detail
+                .map(item => item.msg || JSON.stringify(item))
+                .join(", ");
+        } else if (typeof detail === "string") {
+            errorMessage = detail;
+        } else if (typeof data === "string" && data) {
+            errorMessage = data;
+        } else {
+            errorMessage = `Request failed (${response.status})`;
+        }
+
+        throw new Error(errorMessage);
+    }
+
     return data;
 }
 
-// GET and display all users.
+// GET: Load all users
 async function loadUsers() {
     try {
-        const users = await request(api);
+        const users = await request(USERS_URL);
+
         userList.replaceChildren();
+
+        if (!Array.isArray(users)) {
+            throw new Error("Backend থেকে User List সঠিকভাবে পাওয়া যায়নি।");
+        }
+
+        if (users.length === 0) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = 5;
+            cell.textContent = "No users found.";
+            row.appendChild(cell);
+            userList.appendChild(row);
+            return;
+        }
+
         for (const user of users) {
             const row = document.createElement("tr");
-            for (const value of [user.id, user.name, user.email, user.age]) {
+
+            for (const value of [
+                user.id,
+                user.name,
+                user.email,
+                user.age
+            ]) {
                 const cell = document.createElement("td");
-                cell.textContent = value;
+                cell.textContent = value ?? "";
                 row.appendChild(cell);
             }
+
             const actions = document.createElement("td");
+
             const editButton = document.createElement("button");
+            editButton.type = "button";
             editButton.textContent = "Edit";
-            editButton.onclick = () => editUser(user);
+            editButton.addEventListener("click", () => editUser(user));
+
             const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
             deleteButton.textContent = "Delete";
-            deleteButton.onclick = () => deleteUser(user.id);
+            deleteButton.addEventListener("click", () => deleteUser(user.id));
+
             actions.append(editButton, deleteButton);
             row.appendChild(actions);
             userList.appendChild(row);
-        }
-        if (users.length === 0) {
-            userList.innerHTML = '<tr><td colspan="5">No users found.</td></tr>';
         }
     } catch (error) {
         showMessage("Could not load users: " + error.message, true);
     }
 }
 
-// Same form handles POST and PUT, including age.
+// POST: Add user / PUT: Update user
 form.addEventListener("submit", async (event) => {
     event.preventDefault();
+
     const user = {
         name: nameInput.value.trim(),
         email: emailInput.value.trim(),
         age: Number(ageInput.value)
     };
-    if (!user.name || !user.email || ageInput.value.trim() === "" ||
-        !Number.isInteger(user.age) || user.age < 0 || user.age > 120) {
-        showMessage("Enter a valid name, email, and age (0 to 120).", true);
+
+    if (
+        !user.name ||
+        !user.email ||
+        ageInput.value.trim() === "" ||
+        !Number.isInteger(user.age) ||
+        user.age < 0 ||
+        user.age > 120
+    ) {
+        showMessage("সঠিক Name, Email এবং Age (0–120) লিখুন।", true);
         return;
     }
+
     const isEditing = editingId !== null;
-    const url = isEditing ? `${api}${editingId}` : api;
+
+    const url = isEditing
+        ? `${USERS_URL}${editingId}`
+        : USERS_URL;
+
     try {
+        const saveButton = document.getElementById("save-button");
+        saveButton.disabled = true;
+
         await request(url, {
             method: isEditing ? "PUT" : "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify(user)
         });
+
         resetForm();
         await loadUsers();
-        showMessage(isEditing ? "User updated successfully." : "User added successfully.");
+
+        showMessage(
+            isEditing
+                ? "User updated successfully."
+                : "User added successfully."
+        );
     } catch (error) {
-        showMessage(error.message, true);
+        showMessage("Save failed: " + error.message, true);
+    } finally {
+        document.getElementById("save-button").disabled = false;
     }
 });
 
-// Edit: load Name, Email, and Age into the form.
+// Edit user
 function editUser(user) {
     editingId = user.id;
-    nameInput.value = user.name;
-    emailInput.value = user.email;
-    ageInput.value = user.age;
+
+    nameInput.value = user.name ?? "";
+    emailInput.value = user.email ?? "";
+    ageInput.value = user.age ?? "";
+
     document.getElementById("form-title").textContent = "Edit User";
     document.getElementById("save-button").textContent = "Update User";
+
     cancelButton.hidden = false;
     nameInput.focus();
+
+    showMessage(`Editing user ID: ${user.id}`);
 }
 
-// DELETE a user after confirmation.
+// DELETE user
 async function deleteUser(id) {
-    if (!confirm("Delete this user?")) return;
+    if (!confirm("Are you sure you want to delete this user?")) {
+        return;
+    }
+
     try {
-        await request(`${api}${id}`, { method: "DELETE" });
-        if (editingId === id) resetForm();
+        await request(`${USERS_URL}${id}`, {
+            method: "DELETE"
+        });
+
+        if (editingId === id) {
+            resetForm();
+        }
+
         await loadUsers();
         showMessage("User deleted successfully.");
     } catch (error) {
-        showMessage(error.message, true);
+        showMessage("Delete failed: " + error.message, true);
     }
 }
 
+// Reset form
 function resetForm() {
     form.reset();
     editingId = null;
+
     document.getElementById("form-title").textContent = "Add User";
     document.getElementById("save-button").textContent = "Add User";
+
     cancelButton.hidden = true;
 }
 
+// Cancel editing
 cancelButton.addEventListener("click", resetForm);
+
+// Initial load
 loadUsers();
+```
